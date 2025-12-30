@@ -10,8 +10,12 @@ sap.ui.define([
 	"retail/pmr/promotionaloffers/view/CommunicationServices",
 	"sap/ui/core/routing/History",
 	"retail/pmr/promotionaloffers/utils/ForecastDialog",
-	"sap/ui/util/Storage"
-], function (C, M, U, O, F, J, a, W, b, H, c, S) {
+	"sap/ui/util/Storage",
+	"sap/m/MessageToast",
+	"sap/ui/core/Fragment",
+	"sap/ui/model/json/JSONModel",
+	"sap/ui/export/Spreadsheet"
+], function (C, M, U, O, F, J, a, W, b, H, c, S, MessageToast, Fragment, JSONModel, Spreadsheet) {
 	"use strict";
 	var E = U.getErrorHandler().createMessagePopover();
 	var p, d, f;
@@ -218,58 +222,74 @@ sap.ui.define([
 		//            this.toggleCollisionBtnListenerOn = false;
 		//        }
 		//    },
-		//    onInit: function () {
-		//        this.generalController = o(this, "generalView");
-		//        this.termsController = o(this, "termsView");
-		//        this.vendorFundsController = o(this, "vendorFundsView");
-		//        this.attributesController = o(this, "attributesView");
-		//        this.versionsController = o(this, "versionsView");
-		//        var t = this;
-		//        this.versionsController.setSaveCallback(function () {
-		//            U.manageVersionsSaveDialog(t.getView()).then(function () {
-		//                t.onSave(null, true).then(function (e) {
-		//                    if (e) {
-		//                        t.getEventBus().publish("retail.pmr.promotionaloffers", "launchVersionPage", { oData: t.state.getOfferData() });
-		//                    }
-		//                });
-		//            }, jQuery.noop);
-		//        });
-		//        this.termsController.setGeneralDataModel({
-		//            getDataModel: function () {
-		//                return this.generalController.dataModel;
-		//            }.bind(this)
-		//        });
-		//        this.oMessageManager = U.getMessageManager();
-		//        E.setModel(this.oMessageManager.getMessageModel());
-		//        this.getView().setModel(this.dataModel);
-		//        this.getView().setModel(this.featuresAvailable, "featuresAvailable");
-		//        this.getView().setModel(this.contentModel, "Content");
-		//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "validateOfferForVersion", this.validateOfferForVersion, this);
-		//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "resetTermsTab", this.resetTermsTab, this);
-		//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "setLocationSelection", this.setLocationSelection, this);
-		//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "onVersionDataChange", this.versionDataChange, this);
-		//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "onDateChangeforProdGroup", this.promptProdGroupChange, this);
-		//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "validateVersions", this.changeFlagValue, this);
-		//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "onLocationChangeForProductSearch", this.promptLocChange, this);
-		//        this.state = this.getOwnerComponent().getState();
-		//        this.toggleCollisionBtnListenerOn = false;
-		//        this.getRouter().attachRouteMatched(this.routeMatched, this);
-		//        U.addMasterdataSystemButton(this.getEventBus());
-		//        this.aFinHeaderFields = [
-		//            "marginField",
-		//            "unitField",
-		//            "salesField",
-		//            "profitField",
-		//            "fundField",
-		//            "forecastField"
-		//        ].map(function (x) {
-		//            return this.getView().byId(x);
-		//        }, this);
-		//        this.aForecastHeaderFields = ["forecastField"].map(function (x) {
-		//            return this.getView().byId(x);
-		//        }, this);
-		//        this.offerOperations = new O(this.state);
-		//    },
+		onInit: function () {
+
+                 var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+			     var oHash = oRouter.getHashChanger().getHash();
+			     oRouter.attachRouteMatched(this._onRouteMatched, this);   //To catch the argument passed on the navigation from main offer table to detail screen //
+
+
+				 this.getView().setModel(
+				new sap.ui.model.json.JSONModel({ Rules: [] }),   // Setting local jsonmodel data for tree strcuture --- Need to delete once the odata is modified //
+				"tree"
+			    );
+
+				this._loadMockData(); // Local Json data
+
+
+			//        this.generalController = o(this, "generalView");
+			//        this.termsController = o(this, "termsView");
+			//        this.vendorFundsController = o(this, "vendorFundsView");
+			//        this.attributesController = o(this, "attributesView");
+			//        this.versionsController = o(this, "versionsView");
+			//        var t = this;
+			//        this.versionsController.setSaveCallback(function () {
+			//            U.manageVersionsSaveDialog(t.getView()).then(function () {
+			//                t.onSave(null, true).then(function (e) {
+			//                    if (e) {
+			//                        t.getEventBus().publish("retail.pmr.promotionaloffers", "launchVersionPage", { oData: t.state.getOfferData() });
+			//                    }
+			//                });
+			//            }, jQuery.noop);
+			//        });
+			//        this.termsController.setGeneralDataModel({
+			//            getDataModel: function () {
+			//                return this.generalController.dataModel;
+			//            }.bind(this)
+			//        });
+			//        this.oMessageManager = U.getMessageManager();
+			//        E.setModel(this.oMessageManager.getMessageModel());
+			//        this.getView().setModel(this.dataModel);
+			//        this.getView().setModel(this.featuresAvailable, "featuresAvailable");
+			//        this.getView().setModel(this.contentModel, "Content");
+			//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "validateOfferForVersion", this.validateOfferForVersion, this);
+			//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "resetTermsTab", this.resetTermsTab, this);
+			//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "setLocationSelection", this.setLocationSelection, this);
+			//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "onVersionDataChange", this.versionDataChange, this);
+			//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "onDateChangeforProdGroup", this.promptProdGroupChange, this);
+			//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "validateVersions", this.changeFlagValue, this);
+			//        this.getEventBus().subscribe("retail.pmr.promotionaloffers", "onLocationChangeForProductSearch", this.promptLocChange, this);
+			//        this.state = this.getOwnerComponent().getState();
+			//        this.toggleCollisionBtnListenerOn = false;
+			//        this.getRouter().attachRouteMatched(this.routeMatched, this);
+			//        U.addMasterdataSystemButton(this.getEventBus());
+			//        this.aFinHeaderFields = [
+			//            "marginField",
+			//            "unitField",
+			//            "salesField",
+			//            "profitField",
+			//            "fundField",
+			//            "forecastField"
+			//        ].map(function (x) {
+			//            return this.getView().byId(x);
+			//        }, this);
+			//        this.aForecastHeaderFields = ["forecastField"].map(function (x) {
+			//            return this.getView().byId(x);
+			//        }, this);
+			//        this.offerOperations = new O(this.state);
+		},
+
+
 		//    resetTermsTab: function () {
 		//        this.termsController.resetOfferData();
 		//        var e = this.termsController.getSelectedTermStyle();
@@ -575,12 +595,14 @@ sap.ui.define([
 		//        }
 		//        return true;
 		//    },
-		//    onCancel: function () {
-		//        this.state.storeBack(true);
-		//        this.openCancelDialog(true).then(function () {
-		//            this.state.storeBack(false);
-		//        }.bind(this));
-		//    },
+		onCancel: function () {
+			var oButton = this.byId("executeConflictButton");
+			oButton.mProperties.visible = true;
+			this.state.storeBack(true);
+			this.openCancelDialog(true).then(function () {
+				this.state.storeBack(false);
+			}.bind(this));
+		},
 		//    onNavButtonPress: function () {
 		//        this.openCancelDialog(false);
 		//    },
@@ -1207,10 +1229,12 @@ sap.ui.define([
 		//            });
 		//        }.bind(this));
 		//    },
-		//    onEditOfferPress: function () {
-		//        var e = this.state.getOfferData();
-		//        U.navToEditOffer(this.getRouter(), e);
-		//    },
+		onEditOfferPress: function () {
+			var e = this.state.getOfferData();
+			U.navToEditOffer(this.getRouter(), e);
+			var oButton = this.byId("executeConflictButton");
+			oButton.mProperties.visible = false;
+		},
 		//    onCopyOfferPress: function () {
 		//        this.oMessageManager.removeAllMessages();
 		//        var e = this.state.getOfferData();
@@ -1265,7 +1289,7 @@ sap.ui.define([
 
 		onPressExecuteConflictCheck: function () {
 
-			
+
 
 			if (!this._oConflictDialog) {
 				this._oConflictDialog = sap.ui.xmlfragment(
@@ -1281,7 +1305,7 @@ sap.ui.define([
 
 
 
-			
+
 
 			this._oConflictDialog.open();
 		},
@@ -1291,6 +1315,285 @@ sap.ui.define([
 				this._oConflictDialog.close();
 			}
 		},
+
+
+
+		onExpandAll() {              //Expand button
+			sap.ui.core.Fragment.byId(
+				this.getView().getId(),
+				"conflictTreeTable"
+			).expandToLevel(99);
+		},
+
+
+
+		onCollapseAll() {              //Collapse button
+			sap.ui.core.Fragment.byId(
+				this.getView().getId(),
+				"conflictTreeTable"
+			).collapseAll();
+		},
+
+
+		onExcelExport() {               // Excel download
+			const aRules = this.getView()
+				.getModel("tree")
+				.getProperty("/Rules");
+
+			const aRows = [];
+
+			const traverse = (node, level, meta) => {
+				aRows.push({
+					Hierarchy: node.name,
+					Level: level,
+					Owner: meta.Owner,
+					RunId: meta.RunId,
+					RuleId: meta.RuleId,
+					MessageType: meta.MessageType,
+					CreatedBy: meta.CreatedBy,
+					Reason: meta.Reason,
+					CreatedAt: meta.CreatedAt,
+					ApprovedBy: meta.ApprovedBy,
+					ApprovedAt: meta.ApprovedAt,
+					OverRide: node.selected ? "Yes" : "No"
+				});
+
+				(node.nodes || []).forEach(child =>
+					traverse(child, level + 1, meta)
+				);
+			};
+
+			aRules.forEach(rule => {
+				const meta = {
+					Owner: rule.Owner,
+					RunId: rule.RunId,
+					RuleId: rule.RuleId,
+					MessageType: rule.MessageType,
+					CreatedBy: rule.CreatedBy,
+					Reason: rule.Reason,
+					CreatedAt: rule.CreatedAt,
+					ApprovedBy: rule.ApprovedBy,
+					ApprovedAt: rule.ApprovedAt
+				};
+
+				traverse(rule, 1, meta);
+			});
+
+			new Spreadsheet({
+				workbook: {
+					columns: [
+						{ label: "Hierarchy", property: "Hierarchy" },
+						{ label: "Level", property: "Level" },
+						{ label: "Owner", property: "Owner" },
+						{ label: "OverRide", property: "OverRide" },
+						{ label: "Run ID", property: "RunId" },
+						{ label: "Rule ID", property: "RuleId" },
+						{ label: "Type of Message", property: "MessageType" },
+						{ label: "Created By", property: "CreatedBy" },
+						{ label: "Reason", property: "Reason" },
+						{ label: "Creation Time Stamp", property: "CreatedAt" },
+						{ label: "Approved By", property: "ApprovedBy" },
+						{ label: "Approved Time Stamp", property: "ApprovedAt" },
+
+					]
+				},
+				dataSource: aRows,
+				fileName: "Hierarchy_Flat_View.xlsx"
+			}).build();
+		},
+
+            // To get the offerid and fetch the other offer details of the respective offerid //
+		_onRouteMatched: function (oEvent) {
+
+			var sRouteName = oEvent.getParameter("name");
+			var oArgs = oEvent.getParameter("arguments");
+			var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+			var oHash = oRouter.getHashChanger().getHash();
+
+
+
+			var aParts = oHash.split("/");
+			var sOfferIdHex = aParts.length > 1 ? aParts[1] : null;
+
+			if (!sOfferIdHex) {
+				sap.m.MessageToast.show("OfferId not found in hash");
+				return;
+			}
+
+			console.log("OfferId from hash (hex):", sOfferIdHex);
+
+			// --- Convert hex OfferId to Base64 binary for OData key ---
+			function hexToBytes(hex) {
+				var bytes = [];
+				for (var c = 0; c < hex.length; c += 2) {
+					bytes.push(parseInt(hex.substr(c, 2), 16));
+				}
+				return bytes;
+			}
+
+			function bytesToBase64(bytes) {
+				var binary = "";
+				for (var i = 0; i < bytes.length; i++) {
+					binary += String.fromCharCode(bytes[i]);
+				}
+				return btoa(binary);
+			}
+
+			var sOfferIdBase64 = bytesToBase64(hexToBytes(sOfferIdHex));
+			console.log("OfferId for OData (Base64, safe):", sOfferIdBase64);
+			var oModel = this.getOwnerComponent().getModel();
+
+			sap.ui.core.BusyIndicator.show(0); // show immediately
+
+			oModel.read("/Offers", {
+				success: function (oData) {
+					sap.ui.core.BusyIndicator.hide(); // hide when done
+
+					if (oData && oData.results && oData.results.length > 0) {
+						var filtered = oData.results.filter(function (item) {
+							return item.OfferId === sOfferIdBase64;
+						});
+
+						if (filtered.length === 0) {
+							sap.m.MessageToast.show("No matching Offer found for OfferId");
+							return;
+						}
+
+						console.log("Filtered Offer(s):", filtered);
+
+
+						var aConflictData = filtered.map(function (item) {
+							return {
+								ExtOfferId: item.ExtOfferId || "",
+								Product: item.Product || "",
+								StatusName: item.StatusName || "",
+								Name: item.Name || ""
+							};
+						});
+
+						var oDialogModel = new sap.ui.model.json.JSONModel({
+							conflictData: aConflictData
+						});
+					} else {
+						sap.m.MessageToast.show("No offers returned from the service.");
+					}
+				}.bind(this),
+
+				error: function (oError) {
+					sap.ui.core.BusyIndicator.hide(); // hide even if failed
+					console.error("Error fetching Offers:", oError);
+				}
+			});
+
+
+		},
+
+
+
+		_loadMockData() {    // Local json data for tree table structure //
+
+			const aRules = [
+				{
+					name: "Promotion Offer Price Establishment 1:1 Rule",
+
+					Owner: "Pricing Team",
+					RunId: "RUN-2025-001",
+					RuleId: "RULE-1X1-PRICE",
+					MessageType: "Error",
+					CreatedBy: "system_user",
+					Reason: "Price mismatch detected",
+					CreatedAt: "2025-01-15 10:30:45",
+					ApprovedBy: "pricing_manager",
+					ApprovedAt: "2025-01-16 14:20:10",
+
+					selected: false,
+
+					nodes: [
+						{
+							name: "Prod-1011 - Sainsbury's Egg & Cress Sandwich",
+							selected: false,
+							nodes: [
+								{
+									name: "C001 - Farringdon Local",
+									selected: false,
+									nodes: [
+										{ name: "Region: London", selected: false },
+										{ name: "State: England", selected: false },
+										{ name: "District: Camden", selected: false },
+										{ name: "Locality: Farringdon", selected: false }
+									]
+								}
+							]
+						}
+					]
+				}
+			];
+
+
+			aRules.forEach(rule => {
+				const meta = {
+					Owner: rule.Owner,
+					RunId: rule.RunId,
+					RuleId: rule.RuleId,
+					MessageType: rule.MessageType,
+					CreatedBy: rule.CreatedBy,
+					Reason: rule.Reason,
+					CreatedAt: rule.CreatedAt,
+					ApprovedBy: rule.ApprovedBy,
+					ApprovedAt: rule.ApprovedAt
+				};
+
+				this._propagateMeta(rule, meta);
+			});
+
+			this.getView().getModel("tree").setData({ Rules: aRules });
+		},
+
+
+		_propagateMeta(node, meta) {
+			Object.assign(node, meta);   // copy all fields at once for node //
+			(node.nodes || []).forEach(child =>
+				this._propagateMeta(child, meta)
+			);
+		},
+
+           
+		onNodeSelect(oEvent) {           //For Checkbox downward control
+			const bSelected = oEvent.getParameter("selected");
+			const oCtx = oEvent.getSource().getBindingContext("tree");
+			const oNode = oCtx.getObject();
+			const oModel = oCtx.getModel();
+
+			// Logical enforcement
+			this._selectAllChildren(oNode, bSelected);
+
+			// Visibility-only reflection
+			this._updateParentsByPath(oCtx.getPath(), oModel);
+
+			oModel.refresh(true);
+		},
+		_selectAllChildren(oNode, bSelected) {
+			oNode.selected = bSelected;
+			(oNode.nodes || []).forEach(c =>
+				this._selectAllChildren(c, bSelected)
+			);
+		},
+
+		_updateParentsByPath(sPath, oModel) {
+			const aParts = sPath.split("/");
+			if (aParts.length <= 2) return;
+
+			aParts.pop();
+			const sParentPath = aParts.join("/");
+			const oParent = oModel.getProperty(sParentPath);
+
+			if (!oParent || !oParent.nodes) return;
+
+			// visibility rule
+			oParent.selected = oParent.nodes.some(n => n.selected);
+
+			this._updateParentsByPath(sParentPath, oModel);
+		}
 	});
 	return q;
 });
